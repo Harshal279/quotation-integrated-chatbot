@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Quotation Builder</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* ── User bar (top-right) ── */
+        .user-bar {
+            position: fixed;
+            top: 14px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-pill {
+            background: rgba(124, 58, 237, .12);
+            border: 1px solid rgba(124, 58, 237, .3);
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 0.78rem;
+            color: #c4b5fd;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .logout-link {
+            font-size: 0.78rem;
+            color: #6b7280;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            transition: color .15s;
+        }
+
+        .logout-link:hover {
+            color: #f87171;
+        }
+
+        /* ── Chat entry card ── */
+        .chat-entry-section {
+            margin-top: 24px;
+        }
+
+        .chat-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 0 0 20px;
+        }
+
+        .chat-divider::before,
+        .chat-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        .chat-divider span {
+            color: #718096;
+            font-size: 0.82rem;
+            white-space: nowrap;
+        }
+
+        .chat-card {
+            border: 2px dashed #c4b5fd;
+            border-radius: 12px;
+            padding: 24px 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #faf5ff, #ede9fe);
+            cursor: pointer;
+            transition: all .2s;
+            text-decoration: none;
+            display: block;
+        }
+
+        .chat-card:hover {
+            border-color: #7c3aed;
+            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(124, 58, 237, .18);
+        }
+
+        .chat-card-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .chat-card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #5b21b6;
+            margin-bottom: 4px;
+        }
+
+        .chat-card-desc {
+            font-size: 0.83rem;
+            color: #7c3aed;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- User bar -->
+    {% if user %}
+    <div class="user-bar">
+        <div class="user-pill">👤 {{ user.name }} · {{ user.company }}</div>
+        <a href="/logout" class="logout-link">Logout</a>
+    </div>
+    {% endif %}
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>AI Quotation Builder</h1>
+            <p>Transform requirements into professional quotations using AI</p>
+        </div>
+
+        <!-- Main Card -->
+        <div class="main-card">
+            <!-- Alert Box -->
+            <div id="alertBox" class="alert"></div>
+
+            <!-- API Key Section -->
+            <div class="api-key-section">
+                <h3>Groq API Key</h3>
+                <div class="input-group">
+                    <input type="password" id="apiKey" placeholder="Enter your Groq API key (gsk_...)"
+                        autocomplete="off">
+                </div>
+                <div class="api-status">
+                    <span id="statusIndicator" class="status-indicator"></span>
+                    <span id="statusText">API Key Required</span>
+                </div>
+                <p style="margin-top: 10px; font-size: 0.85rem; color: #718096;">
+                    Get your API key from <a href="https://console.groq.com/" target="_blank"
+                        style="color: #667eea;">console.groq.com</a>
+                </p>
+            </div>
+
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <h3>Upload Requirement Document</h3>
+                <div id="uploadArea" class="upload-area">
+                    <div class="upload-icon">📤</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div class="upload-hint">Supports Word (.docx) and PDF files</div>
+                </div>
+                <input type="file" id="fileInput" accept=".pdf,.docx,.doc">
+
+                <div id="fileInfo" class="file-info">
+                    <div class="file-icon">📄</div>
+                    <div class="file-details">
+                        <div id="fileName" class="file-name">document.pdf</div>
+                        <div class="file-size">Ready to process</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Template Selection -->
+            <div class="template-section">
+                <h3>📋 Select Quotation Template</h3>
+                <div class="template-toggle">
+                    <div class="template-option active" data-template="type1">
+                        <h4>Type 1: Detailed Itemized</h4>
+                        <p>Comprehensive breakdown with detailed pricing table, timeline, and terms</p>
+                    </div>
+                    <div class="template-option" data-template="type2">
+                        <h4>Type 2: Executive Summary</h4>
+                        <p>Professional executive-style with consolidated pricing and key highlights</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button id="generateBtn" class="btn btn-primary" disabled>
+                    ✨ Generate Quotation
+                </button>
+            </div>
+
+            <!-- Progress Section -->
+            <div id="progressSection" class="progress-section">
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+                <div id="progressText" class="progress-text">Processing...</div>
+            </div>
+
+            <!-- Preview Section -->
+            <div id="previewSection" class="preview-section">
+                <h3>👁️ Quotation Preview</h3>
+                <div id="previewContent" class="preview-content">
+                    <!-- Preview content will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Download Section -->
+            <div id="downloadSection" class="download-section">
+                <h3>✅ Quotation Generated Successfully!</h3>
+                <p style="margin-bottom: 20px;">Download your professional quotation in your preferred format</p>
+                <div class="download-buttons">
+                    <button id="downloadPdf" class="btn btn-success">
+                        📄 Download PDF
+                    </button>
+                    <button id="downloadWord" class="btn btn-success">
+                        📝 Download Word
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Chat Entry Card ── -->
+            <div class="chat-entry-section">
+                <div class="chat-divider"><span>or</span></div>
+                <a href="/chat" class="chat-card">
+                    <div class="chat-card-icon">🤖</div>
+                    <div class="chat-card-title">Don't have a document? Chat with AI</div>
+                    <div class="chat-card-desc">Our AI assistant will guide you through the requirements step by step
+                        and generate the quotation automatically.</div>
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>
