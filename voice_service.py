@@ -10,6 +10,7 @@ import importlib.util
 import os
 import edge_tts
 from openai import OpenAI
+from config import Config
 
 # Load chatbot config directly by path to avoid shadowing
 _chatbot_config_path = os.path.join(os.path.dirname(__file__), "chatbot", "config.py")
@@ -67,19 +68,18 @@ def synthesize_tts(text: str, voice: str = EDGE_TTS_VOICE) -> bytes:
         return b""
 
 
-def call_stt(api_key: str, audio_bytes: bytes) -> str:
+def call_stt(audio_bytes: bytes) -> str:
     """
     Transcribe audio using Groq's Whisper API.
     Args:
-        api_key: Groq API key
         audio_bytes: Raw audio bytes (WebM/WAV)
     Returns:
         Transcribed text, or empty string on failure
     """
-    if not api_key:
+    if not Config.GROQ_API_KEY:
         return ""
     try:
-        client = OpenAI(api_key=api_key, base_url=GROQ_BASE_URL)
+        client = OpenAI(api_key=Config.GROQ_API_KEY, base_url=GROQ_BASE_URL)
         buf = io.BytesIO(audio_bytes)
         buf.name = "recording.webm"  # Groq Whisper accepts webm
         result = client.audio.transcriptions.create(

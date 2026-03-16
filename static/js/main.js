@@ -10,9 +10,6 @@ const fileInput = document.getElementById('fileInput');
 const uploadArea = document.getElementById('uploadArea');
 const fileInfo = document.getElementById('fileInfo');
 const fileName = document.getElementById('fileName');
-const apiKeyInput = document.getElementById('apiKey');
-const statusIndicator = document.getElementById('statusIndicator');
-const statusText = document.getElementById('statusText');
 const generateBtn = document.getElementById('generateBtn');
 const progressSection = document.getElementById('progressSection');
 const progressFill = document.getElementById('progressFill');
@@ -30,7 +27,6 @@ const templateOptions = document.querySelectorAll('.template-option');
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
-    checkApiKey();
 });
 
 function setupEventListeners() {
@@ -56,9 +52,6 @@ function setupEventListeners() {
             handleFile(files[0]);
         }
     });
-
-    // API key
-    apiKeyInput.addEventListener('input', checkApiKey);
 
     // Template toggle
     templateOptions.forEach(option => {
@@ -130,23 +123,8 @@ async function uploadFile(file) {
     }
 }
 
-function checkApiKey() {
-    const apiKey = apiKeyInput.value.trim();
-    if (apiKey.length > 0) {
-        statusIndicator.classList.add('active');
-        statusText.textContent = 'API Key Provided';
-        statusText.style.color = '#48bb78';
-    } else {
-        statusIndicator.classList.remove('active');
-        statusText.textContent = 'API Key Required';
-        statusText.style.color = '#718096';
-    }
-    checkReadyToGenerate();
-}
-
 function checkReadyToGenerate() {
-    const apiKey = apiKeyInput.value.trim();
-    if (requirements && apiKey.length > 0) {
+    if (requirements) {
         generateBtn.disabled = false;
     } else {
         generateBtn.disabled = true;
@@ -154,20 +132,12 @@ function checkReadyToGenerate() {
 }
 
 async function generateQuotation() {
-    const apiKey = apiKeyInput.value.trim();
-
     console.log('Generate button clicked');
     console.log('Requirements:', requirements);
-    console.log('API Key length:', apiKey.length);
     console.log('Template:', currentTemplate);
 
     if (!requirements) {
         showAlert('Please upload a requirement document first', 'warning');
-        return;
-    }
-
-    if (!apiKey) {
-        showAlert('Please enter your Groq API key', 'warning');
         return;
     }
 
@@ -184,8 +154,7 @@ async function generateQuotation() {
             },
             body: JSON.stringify({
                 requirements: requirements,
-                template_type: currentTemplate,
-                api_key: apiKey
+                template_type: currentTemplate
             })
         });
 
