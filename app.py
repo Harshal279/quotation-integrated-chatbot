@@ -188,15 +188,11 @@ def generate_quotation():
         print("=" * 50)
         requirements = data.get('requirements')
         template_type = data.get('template_type', 'type1')
-        api_key = data.get('api_key')
         print(f"Requirements length: {len(requirements) if requirements else 0}")
         print(f"Template type: {template_type}")
-        print(f"API key provided: {bool(api_key)}")
         if not requirements:
             return jsonify({'success': False, 'error': 'No requirements provided'})
-        if not api_key:
-            return jsonify({'success': False, 'error': 'API key is required'})
-        llm_handler = LLMHandler(api_key=api_key)
+        llm_handler = LLMHandler()
         quotation_data = llm_handler.generate_quotation(
             requirements=requirements,
             template_type=template_type
@@ -281,12 +277,11 @@ def chat():
 def chat_message():
     """
     Process one chat turn.
-    Body: { api_key, model, history: [{role,content},...], message, session_id }
+    Body: { model, history: [{role,content},...], message, session_id }
     Returns: { reply, history, summary_ready, session_id }
     """
     try:
         data = request.get_json()
-        api_key = data.get('api_key', '').strip()
         model = data.get('model', DEFAULT_MODEL)
         history = data.get('history', [])
         user_msg = data.get('message', '').strip()
@@ -295,7 +290,7 @@ def chat_message():
         if not user_msg:
             return jsonify({'success': False, 'error': 'Empty message'})
 
-        result = send_message(api_key, model, history, user_msg)
+        result = send_message(model, history, user_msg)
         updated_history = result['history']
 
         # Auto-save to Supabase
@@ -320,9 +315,8 @@ def chat_greet():
     """Get the initial AI greeting."""
     try:
         data = request.get_json()
-        api_key = data.get('api_key', '').strip()
         model = data.get('model', DEFAULT_MODEL)
-        greeting = get_greeting(api_key, model)
+        greeting = get_greeting(model)
         return jsonify({'success': True, 'greeting': greeting})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -339,25 +333,22 @@ def chat_generate():
     """
     try:
         data = request.get_json()
-        api_key = data.get('api_key', '').strip()
         model = data.get('model', DEFAULT_MODEL)
         history = data.get('history', [])
         template_type = data.get('template_type', 'type1')
 
-        if not api_key:
-            return jsonify({'success': False, 'error': 'API key is required'})
         if not history:
             return jsonify({'success': False, 'error': 'No conversation history provided'})
 
         # Step 1 — Expand Q&A into a detailed requirements document
         print("=" * 50)
         print("CHAT → QUOTATION: Step 1 — Expanding requirements")
-        requirements_text = expand_to_requirements(api_key, model, history)
+        requirements_text = expand_to_requirements(model, history)
         print(f"Expanded requirements length: {len(requirements_text)}")
 
         # Step 2 — Generate quotation (same engine as upload path)
         print("CHAT → QUOTATION: Step 2 — Generating quotation")
-        llm_handler = LLMHandler(api_key=api_key)
+        llm_handler = LLMHandler()
         quotation_data = llm_handler.generate_quotation(
             requirements=requirements_text,
             template_type=template_type,
@@ -408,16 +399,13 @@ def chat_stt():
     """
     try:
         data = request.get_json()
-        api_key = data.get('api_key', '').strip()
         audio_b64 = data.get('audio_b64', '')
         
-        if not api_key:
-            return jsonify({'success': False, 'error': 'API key required for speech recognition'})
         if not audio_b64:
             return jsonify({'success': False, 'error': 'No audio data received'})
             
         audio_bytes = base64.b64decode(audio_b64)
-        transcript = call_stt(api_key, audio_bytes)
+        transcript = call_stt(audio_bytes)
         
         if transcript.startswith("[Transcription error"):
             return jsonify({'success': False, 'error': transcript})

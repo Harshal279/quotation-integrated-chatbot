@@ -4,6 +4,8 @@ No Streamlit dependency. Uses the same CRM_SYSTEM_PROMPT, model config,
 and Groq API logic as chatbot/ai_services.py.
 """
 
+from config import Config
+
 import sys
 import os
 import importlib.util
@@ -42,16 +44,16 @@ CONVERSATION:
 Output ONLY the requirements document text, no preamble."""
 
 
-def _get_client(api_key: str) -> OpenAI:
-    return OpenAI(api_key=api_key, base_url=GROQ_BASE_URL)
+def _get_client() -> OpenAI:
+    return OpenAI(api_key=Config.GROQ_API_KEY, base_url=GROQ_BASE_URL)
 
 
-def get_greeting(api_key: str, model: str = DEFAULT_MODEL) -> str:
+def get_greeting(model: str = DEFAULT_MODEL) -> str:
     """Get the initial AI greeting (non-streaming)."""
-    if not api_key:
-        return "Please provide a Groq API key to start chatting."
+    if not Config.GROQ_API_KEY:
+        return "API key not configured. Please contact the administrator."
     try:
-        client = _get_client(api_key)
+        client = _get_client()
         resp = client.chat.completions.create(
             model=model,
             messages=[{"role": "system", "content": CRM_SYSTEM_PROMPT}],
@@ -60,15 +62,14 @@ def get_greeting(api_key: str, model: str = DEFAULT_MODEL) -> str:
         )
         return resp.choices[0].message.content
     except Exception as e:
-        return f"Could not connect to AI — check your API key. ({e})"
+        return f"Could not connect to AI. ({e})"
 
 
-def send_message(api_key: str, model: str, history: list, user_msg: str) -> dict:
+def send_message(model: str, history: list, user_msg: str) -> dict:
     """
     Send a user message and get AI response.
 
     Args:
-        api_key: Groq API key
         model: Model identifier
         history: List of {role, content} dicts (full conversation so far)
         user_msg: New user message
@@ -80,13 +81,13 @@ def send_message(api_key: str, model: str, history: list, user_msg: str) -> dict
           "summary_ready": bool  — True when AI has output the final summary
         }
     """
-    if not api_key:
-        return {"reply": "Please provide a Groq API key.", "history": history, "summary_ready": False}
+    if not Config.GROQ_API_KEY:
+        return {"reply": "API key not configured.", "history": history, "summary_ready": False}
 
     updated_history = history + [{"role": "user", "content": user_msg}]
 
     try:
-        client = _get_client(api_key)
+        client = _get_client()
         payload = [{"role": "system", "content": CRM_SYSTEM_PROMPT}] + updated_history
         resp = client.chat.completions.create(
             model=model,
@@ -130,13 +131,13 @@ def extract_requirements_text(history: list) -> str:
     return "\n\n".join(lines)
 
 
-def expand_to_requirements(api_key: str, model: str, history: list) -> str:
+def expand_to_requirements(model: str, history: list) -> str:
     """
     Step 1 of chat→quotation handoff:
     Ask the LLM to convert the collected Q&A into a full requirements document.
     The output is then passed to LLMHandler.generate_quotation().
     """
-    if not api_key:
+    if not Config.GROQ_API_KEY:
         return extract_requirements_text(history)  # Fallback to raw summary
 
     # Build a plain-text transcript of the conversation
@@ -149,7 +150,7 @@ def expand_to_requirements(api_key: str, model: str, history: list) -> str:
     prompt = EXPAND_PROMPT.format(conversation=conversation_text)
 
     try:
-        client = _get_client(api_key)
+        client = _get_client()
         resp = client.chat.completions.create(
             model=model,
             messages=[

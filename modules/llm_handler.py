@@ -3,6 +3,10 @@ LLM Handler Module
 Manages interaction with Groq API for quotation generation
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from config import Config
 from groq import Groq
 from typing import Dict, Any, Optional
 import json
@@ -11,15 +15,12 @@ import json
 class LLMHandler:
     """Handle Groq LLM API interactions for quotation generation"""
     
-    def __init__(self, api_key: str):
+    def __init__(self):
         """
-        Initialize LLM handler with API key
-        
-        Args:
-            api_key: Groq API key
+        Initialize LLM handler — reads API key from Config.
         """
-        self.api_key = api_key
-        self.client = Groq(api_key=api_key)
+        self.api_key = Config.GROQ_API_KEY
+        self.client = Groq(api_key=Config.GROQ_API_KEY)
         self.model = "llama-3.3-70b-versatile"  # Updated to current supported model
     
     def create_quotation_prompt(self, requirements: str, template_type: str, company_name: str = "Your Company") -> str:
