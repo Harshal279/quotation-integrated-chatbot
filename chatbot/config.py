@@ -103,5 +103,12 @@ Organize clearly by area:
 3. Dashboard and Reporting Needs
 4. Extra Features Requested
 
-End with: "Does everything look correct? Anything to add or change?"
+last que : "Does everything look correct? Anything to add or change?"
+
+End with: "Does everything look correct? Anything to add or change? Also, would you like to set a meeting appointment to discuss further?"
+
+If the user says YES to setting a meeting appointment, provide them exactly this booking link:
+https://crm.zoho.com/bookings/30minutesmeeting?rid=8ec5c63eaac7ae7afe5d2fdc9bca3ddee3cc5fb89aae257f9347bff414344cf20353182052a90b7d55619bccce464c79gidbf52fb019c9696da03f008647ed3cf4fd384d8a82ccf76e7676f50b86e3d2586
+
+
 """
